@@ -1,3 +1,4 @@
+
 import os
 from dotenv import load_dotenv
 
@@ -7,33 +8,102 @@ from llm_client import (
     LLMClient
 )
 
+from mongo_logger import MongoLogger
+
+
+# --------------------------------
+# 1. Load Environment Variables
+# --------------------------------
+
 load_dotenv(override=True)
 
-provider_name = input(
-    "Choose provider (gemini/ollama): "
-).strip().lower()
 
-if provider_name == "gemini":
+# --------------------------------
+# 2. Display Application Menu
+# --------------------------------
 
-    api_key = os.getenv("GEMINI_API_KEY")
+print("================================")
+print("       WEEK 3: LLM MONITORING")
+print("================================")
 
-    if not api_key:
-        raise ValueError("Gemini API key not found in .env")
+print("1. Gemini")
+print("2. Ollama")
 
-    provider = GeminiProvider(api_key)
+choice = input("\nSelect provider (1/2): ").strip()
 
-elif provider_name == "ollama":
+logger = None
 
-    provider = OllamaProvider("llama3.2")
 
-else:
-    raise ValueError("Invalid provider selected")
+try:
 
-client = LLMClient(provider)
+    # --------------------------------
+    # 3. Connect to MongoDB
+    # --------------------------------
 
-prompt = input("Enter your question: ")
+    logger = MongoLogger()
 
-answer = client.generate(prompt)
+    # --------------------------------
+    # 4. Select AI Provider
+    # --------------------------------
 
-print("\nLLM Response:")
-print(answer)
+    if choice == "1":
+
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+            raise ValueError(
+                "Gemini API key not found in .env file."
+            )
+
+        provider = GeminiProvider(api_key)
+
+    elif choice == "2":
+
+        provider = OllamaProvider("llama3.2")
+
+    else:
+
+        raise ValueError(
+            "Invalid selection. Please choose 1 or 2."
+        )
+
+    # --------------------------------
+    # 5. Initialize Common LLM Client
+    # --------------------------------
+
+    client = LLMClient(provider, logger)
+
+    # --------------------------------
+    # 6. Get User Prompt
+    # --------------------------------
+
+    prompt = input("\nEnter your question: ").strip()
+
+    if not prompt:
+        raise ValueError("Prompt cannot be empty.")
+
+    # --------------------------------
+    # 7. Generate AI Response
+    # --------------------------------
+
+    answer = client.generate(prompt)
+
+    print("\n========== AI RESPONSE ==========")
+    print(answer)
+
+    print("\n========== COMPLETED ==========")
+
+
+except Exception as error:
+
+    print("\nApplication error:", error)
+
+
+finally:
+
+    # --------------------------------
+    # 8. Close MongoDB Connection
+    # --------------------------------
+
+    if logger is not None:
+        logger.close()
